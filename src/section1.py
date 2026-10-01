@@ -1,14 +1,20 @@
 #!/usr/bin/env python3
-# add import and helper functions her
+
+import numpy as np
+
 if __name__ == "__main__":
     # code goes here
-  print(´hello world´)
+    print("hello world")
 
-  np.random.seed(42)
-  A = np.random.normal(size=(4, 4))
-  B = np.random.normal(size=(4, 2))
+    np.random.seed(42)
+    x = np.random.normal(size=(4, 10))
 
-  print(a @ b)
+
+    differences = x[:, None, :] - x[None, :, :]
+
+    D = np.sum(np.square(differences), axis=2)
+
+    print(D)
 
 
 
