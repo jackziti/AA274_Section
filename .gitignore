@@ -1,0 +1,7 @@
+# colcon output belongs at the workspace root, outside this repository.
+build/
+install/
+log/
+__pycache__/
+*.py[cod]
+.DS_Store
