@@ -2,8 +2,3 @@
 Team Member #1: Agaton
 Team Member #2: Auguste
 Team Member #3: Jack Maraziti
-=======
-agaton
-
-jackziti
->>>>>>> 3cfedd1fe9cbcb0736a3ffb552d7216890bb785d
