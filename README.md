@@ -1,15 +1,17 @@
 # CS 237A / AA274A section repository
 
-Use `main` for the latest completed work. Start lab 5 on a new `section5` branch,
-then push it and merge its pull request into `main` after the lab.
+Use `main` for the latest completed work. Start each lab on a new `sectionN`
+branch, then push it and merge its pull request into `main` after the lab.
 
 ## Repository layout
 
 ```text
 AA274_Section/
-├── autonomy_repo/    # HW1/lab 4 heading controller and HW2/lab 5 navigator
-│   ├── scripts/      # heading_controller.py, navigator.py, p3_plot.py
-│   ├── launch/       # heading_control.launch.py, navigator.launch.py
+├── autonomy_repo/    # heading controller, navigator, perception controller, frontier explorer
+│   ├── scripts/      # heading_controller.py, navigator.py, p3_plot.py,
+│   │                 # perception_controller.py, frontier.py
+│   ├── launch/       # heading_control.launch.py, navigator.launch.py,
+│   │                 # perception_controller.launch.py, frontier.launch.py
 │   ├── rviz/
 │   ├── plots/
 │   ├── CMakeLists.txt
@@ -24,7 +26,9 @@ Lab 4 brought the HW1 `autonomy_repo` package into the group repository. HW2
 problem 4 added `autonomy_repo/scripts/navigator.py`,
 `autonomy_repo/launch/navigator.launch.py`, and the executable's CMake install
 entry. The required homework algorithms are included in this package; the lab
-laptop does not need separate HW1 or HW2 repositories.
+laptop does not need separate HW1 or HW2 repositories. Section 7 added the
+frontier explorer: `autonomy_repo/scripts/frontier.py`,
+`autonomy_repo/launch/frontier.launch.py`, and its CMake install entry.
 
 The lab 1 exercises and HW1 written report are archived outside the repository.
 Their original versions also remain in Git history. Each ROS package's own
@@ -96,6 +100,28 @@ ros2 launch autonomy_repo navigator.launch.py use_sim_time:=false
 
 Select goals in RViz and demonstrate navigation to the CA.
 
+## Frontier exploration
+
+`frontier.launch.py` starts RViz, the state publisher, and the navigator, then
+starts `frontier.py` after 5 seconds. Do not run `navigator.launch.py` at the
+same time.
+
+The frontier node reads `/map` and `/state` and publishes goals on `/cmd_nav`.
+A map cell is a frontier cell when its 11×11 window has at least 25% unknown
+cells, at least 35% free cells, and no occupied cells. The node sends the
+robot to the closest frontier cell. After each `/nav_success` message it
+plans the next goal. Frontier cells within 0.5 m of a failed goal are skipped.
+When no frontier cells remain, it logs `finished exploration`.
+
+With the simulator running (see [Simulation](#simulation)), use a second terminal:
+
+```bash
+source ~/autonomy_ws/install/setup.bash
+ros2 launch autonomy_repo frontier.launch.py
+```
+
+On hardware, add `use_sim_time:=false`.
+
 ## Earlier lab nodes
 
 - Lab 2: `ros2 run s2_basic constant_control.py` publishes every 0.2 seconds.
@@ -127,4 +153,4 @@ packages. ROS transport and launch objects were replaced by test doubles in the
 offline checks.
 
 A real ROS build, Gazebo test, and hardware demonstration must still be performed
-on the course laptop.
+on the course laptop. The frontier explorer was not part of these offline checks.
