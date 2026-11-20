@@ -7,6 +7,7 @@ from asl_tb3_lib.grids import StochOccupancyGrid2D
 from asl_tb3_msgs.msg import TurtleBotState
 from nav_msgs.msg import OccupancyGrid
 from std_msgs.msg import Bool
+from geometry_msgs.msg import Twist
 import scipy.signal
 
 def window_counts(mask, window_size):
@@ -94,6 +95,14 @@ class FrontierExplorer(Node):
         self.nav_succes_sub=self.create_subscription(Bool, "/nav_success", self.nav_success_callback, 10)
         self.map_sub = self.create_subscription(OccupancyGrid, "/map", self.map_callback, 10)
 
+
+        self.stopsign=self.create_subscription(Bool,"/detector_bool",self.stopsign_callback, 10)
+        self.cooldown = 0.0
+        self.stop_until = 0.0
+        self.velocity_sub=self.create_subscription(Twist,"/navigation_cmd_vel",self.velocity_callback,10)
+        self.velocity_pub=self.create_publisher(Twist,"/cmd_vel",10)
+
+
         self.nav_pub = self.create_publisher(TurtleBotState, "/cmd_nav", 10)
 
     def map_callback(self, msg: OccupancyGrid) -> None:
@@ -110,6 +119,9 @@ class FrontierExplorer(Node):
         )
 
     def timer_callback(self):
+        a=self.get_clock().now().nanoseconds/1e9
+        if a<self.stop_until:
+            return
         if self.goal is None:
             self.send_next_goal()
     
@@ -162,6 +174,24 @@ class FrontierExplorer(Node):
             else:
                 self.goal=TurtleBotState(x=float(goal_state[0]), y=float(goal_state[1]), theta=self.state.theta)
                 self.nav_pub.publish(self.goal)
+
+    def stopsign_callback(self,msg:Bool):
+        a=self.get_clock().now().nanoseconds/1e9
+        if msg.data and a > self.cooldown:
+            self.stop_until = a + 5.0
+            self.cooldown = self.stop_until + 3.0
+            self.velocity_pub.publish(Twist())
+
+    def velocity_callback(self, msg: Twist):
+        a=self.get_clock().now().nanoseconds/1e9
+        if a<self.stop_until:
+            self.velocity_pub.publish(Twist())
+        else:
+            self.velocity_pub.publish(msg)
+
+
+            
+
 
 
 def main():
