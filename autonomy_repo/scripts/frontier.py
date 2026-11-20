@@ -87,6 +87,7 @@ class FrontierExplorer(Node):
         self.goal = None
         self.occupancy = None
         self.failed_goals=[]
+        self.declare_parameter("min_goal_distance", 0.4)
 
         self.timer=self.create_timer(1.0, self.timer_callback)
         self.state_sub = self.create_subscription(TurtleBotState, "/state", self.state_callback, 10)
@@ -111,30 +112,53 @@ class FrontierExplorer(Node):
     def timer_callback(self):
         if self.goal is None:
             self.send_next_goal()
-        else:
-            self.timer.cancel()
     
     def state_callback(self, msg:TurtleBotState):
         self.state=msg #because only x, y and theta in msg as it's a TurtleBotState
 
     def nav_success_callback(self, msg: Bool):
+        # Ignore results received before this explorer has sent its own goal.
+        if self.goal is None:
+            return
         if msg.data==False:
             self.failed_goals.append(np.array([self.goal.x, self.goal.y]))
-        self.send_next_goal()
+        # Keep selection on the timer so new map updates can arrive first.
+        self.goal = None
 
     def send_next_goal(self):
-        if self.state is None or self.occupancy is None:
+        if self.goal is not None or self.state is None or self.occupancy is None:
+            return
+        if self.nav_pub.get_subscription_count() == 0:
             return
         else:
             current_state=np.array([self.state.x,self.state.y])
             frontier_states=explore(self.occupancy)
+            if len(frontier_states) == 0:
+                self.get_logger().info("No frontiers yet; waiting for map updates")
+                return
+
+            # The homework heuristic allows unknown centers. Navigation goals
+            # must instead be known-free and far enough away to form a path.
+            indices = np.rint(
+                (frontier_states - self.occupancy.origin_xy)
+                / self.occupancy.resolution
+            ).astype(int)
+            values = self.occupancy.probs[indices[:, 1], indices[:, 0]]
+            distances = np.linalg.norm(frontier_states - current_state, axis=1)
+            min_distance = self.get_parameter("min_goal_distance").value
+            keep = (distances >= min_distance) & (values >= 0) & (values < 50)
+            frontier_states = frontier_states[keep]
             # remove frontier states within 0.5 m of any previously failed goal
             for failed_goal in self.failed_goals:
                 distance_missed_point=np.linalg.norm(frontier_states-failed_goal, axis=1)
                 frontier_states=frontier_states[distance_missed_point>=0.5]
+            # Match the navigator's obstacle clearance check before publishing.
+            frontier_states = np.asarray([
+                point for point in frontier_states if self.occupancy.is_free(point)
+            ]).reshape(-1, 2)
             goal_state, distance=closest_frontier(frontier_states,current_state)
             if goal_state is None:
-                self.get_logger().info("finished exploration")
+                self.get_logger().info("No eligible frontier goals; waiting for map updates")
             else:
                 self.goal=TurtleBotState(x=float(goal_state[0]), y=float(goal_state[1]), theta=self.state.theta)
                 self.nav_pub.publish(self.goal)

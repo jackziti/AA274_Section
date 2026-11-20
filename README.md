@@ -110,8 +110,11 @@ The frontier node reads `/map` and `/state` and publishes goals on `/cmd_nav`.
 A map cell is a frontier cell when its 11×11 window has at least 25% unknown
 cells, at least 35% free cells, and no occupied cells. The node sends the
 robot to the closest frontier cell. After each `/nav_success` message it
-plans the next goal. Frontier cells within 0.5 m of a failed goal are skipped.
-When no frontier cells remain, it logs `finished exploration`.
+selects the next goal on its next timer tick. Navigation targets must be known-free,
+pass the navigator's obstacle-clearance check, and be at least 0.4 m away (the
+`min_goal_distance` parameter). Frontier cells within 0.5 m of a failed goal are
+skipped. When no eligible frontier remains, the timer keeps checking for map
+updates instead of permanently stopping exploration.
 
 With the simulator running (see [Simulation](#simulation)), use a second terminal:
 
@@ -121,6 +124,16 @@ ros2 launch autonomy_repo frontier.launch.py
 ```
 
 On hardware, add `use_sim_time:=false`.
+
+The section 7 baseline has 11 offline regression tests:
+
+```bash
+python -m unittest discover -s tests -v
+```
+
+They use ROS test doubles to check goal selection and lifecycle behavior; a real
+`colcon build` and simulation are still required on the lab laptop. The stop-sign
+subscriber and five-second pause/cooldown from task 4.1 are left for the lab.
 
 ## Earlier lab nodes
 

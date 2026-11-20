@@ -34,12 +34,14 @@ def generate_launch_description():
                 package="asl_tb3_lib",
                 parameters=[
                     {"output_channel": "/cmd_nav"},
+                    {"use_sim_time": use_sim_time},
                 ],
             ),
             # state publisher for turtlebot
             Node(
                 executable="state_publisher.py",
                 package="asl_tb3_lib",
+                parameters=[{"use_sim_time": use_sim_time}],
             ),
             # student's navigator node
             Node(
