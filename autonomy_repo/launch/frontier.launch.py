@@ -50,6 +50,7 @@ def generate_launch_description():
                 parameters=[
                     {"use_sim_time": use_sim_time},
                 ],
+                remappings=[("cmd_vel","navigation_cmd_vel")],
             ),
             #timer action that allows to use frontier
             TimerAction(period=5.0, actions=[Node(executable="frontier.py", package="autonomy_repo",parameters=[{"use_sim_time": use_sim_time}])]),
